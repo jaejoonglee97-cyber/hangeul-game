@@ -510,12 +510,35 @@ body {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 24px;
+  gap: 8px;
+  padding: 10px 16px;
   background: rgba(255,255,255,0.7);
   backdrop-filter: blur(8px);
   border-bottom: 2px solid rgba(255,255,255,0.8);
   width: 100%;
   flex-shrink: 0;
+}
+
+.btn-back-game {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  font-size: 14px;
+  color: #4a5568;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.12s, border-color 0.12s;
+  font-family: inherit;
+}
+
+.btn-back-game:hover {
+  background: #edf2f7;
+  border-color: #cbd5e0;
 }
 
 .progress-indicator {
@@ -768,6 +791,93 @@ body {
 
 .no-hand-hint.visible {
   display: block;
+}
+
+/* ===========================
+   Pause Overlay
+   =========================== */
+
+.pause-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(4px);
+}
+
+.pause-card {
+  background: white;
+  border-radius: 28px;
+  padding: 36px 44px;
+  text-align: center;
+  box-shadow: 0 16px 48px rgba(0,0,0,0.22);
+  max-width: 340px;
+  width: 88%;
+}
+
+.pause-emoji {
+  font-size: 44px;
+  margin-bottom: 8px;
+}
+
+.pause-title {
+  font-size: 22px;
+  font-weight: 900;
+  color: #1a365d;
+  margin-bottom: 8px;
+}
+
+.pause-desc {
+  font-size: 14px;
+  color: #718096;
+  margin-bottom: 24px;
+  line-height: 1.5;
+}
+
+.pause-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.btn-resume {
+  padding: 14px;
+  border-radius: 50px;
+  border: none;
+  background: linear-gradient(135deg, #48bb78, #38a169);
+  color: white;
+  font-size: 16px;
+  font-weight: 800;
+  cursor: pointer;
+  font-family: inherit;
+  transition: transform 0.1s, box-shadow 0.1s;
+  box-shadow: 0 4px 12px rgba(72,187,120,0.4);
+}
+
+.btn-resume:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(72,187,120,0.5);
+}
+
+.btn-quit-game {
+  padding: 12px;
+  border-radius: 50px;
+  border: 2px solid #e2e8f0;
+  background: white;
+  color: #718096;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: border-color 0.12s, color 0.12s;
+}
+
+.btn-quit-game:hover {
+  border-color: #fc8181;
+  color: #e53e3e;
 }
 
 /* ===========================
