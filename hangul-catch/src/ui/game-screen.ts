@@ -322,15 +322,19 @@ export class GameScreen {
     }
   }
 
+  // camera video is requested at 640×480; scale to play area size
+  private mapCamera(camX: number, camY: number): { x: number; y: number } {
+    const bounds = this.getPlayBounds();
+    return {
+      x: (camX / 640) * bounds.width,
+      y: (camY / 480) * bounds.height,
+    };
+  }
+
   private updateHandCursor(): void {
     const adapter = this.cameraAdapter;
     if (!adapter) return;
-
-    const handVisible = adapter.isHandVisible;
-
-    if (handVisible) {
-      this.handCursorEl.style.left = `${this.cursorX}px`;
-      this.handCursorEl.style.top = `${this.cursorY}px`;
+    if (adapter.isHandVisible) {
       this.noHandHintEl.classList.remove('visible');
     } else {
       this.noHandHintEl.classList.add('visible');
@@ -356,22 +360,29 @@ export class GameScreen {
 
   private handleInput = (event: InputEvent): void => {
     if (event.type === 'aim') {
-      this.cursorX = event.x;
-      this.cursorY = event.y;
+      const { x, y } = this.hasCamera
+        ? this.mapCamera(event.x, event.y)
+        : { x: event.x, y: event.y };
 
-      // For camera mode: keep hand cursor style in sync
+      this.cursorX = x;
+      this.cursorY = y;
+
       if (this.hasCamera) {
-        this.handCursorEl.style.left = `${event.x}px`;
-        this.handCursorEl.style.top = `${event.y}px`;
+        this.handCursorEl.style.left = `${x}px`;
+        this.handCursorEl.style.top = `${y}px`;
         this.handCursorEl.classList.remove('closed');
       }
     } else if (event.type === 'catch') {
+      const { x, y } = this.hasCamera
+        ? this.mapCamera(event.x, event.y)
+        : { x: event.x, y: event.y };
+
       if (this.hasCamera) {
         this.handCursorEl.classList.add('closed');
         const icon = this.handCursorEl.querySelector('.hand-icon');
         if (icon) icon.textContent = '✊';
       }
-      this.processCatch(event.x, event.y);
+      this.processCatch(x, y);
     } else if (event.type === 'release') {
       if (this.hasCamera) {
         this.handCursorEl.classList.remove('closed');
