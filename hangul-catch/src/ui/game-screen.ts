@@ -1,13 +1,14 @@
 import {
   createRound,
   updateCardPositions,
-  updateDifficulty,
   createInitialGameState,
   type Card,
   type RoundState,
   type GameState,
   type AttemptRecord,
+  type DifficultyLevel,
 } from '../game/index.ts';
+import { getWordsByCategory, type Category, type WordEntry } from '../game/words.ts';
 import { MouseTouchAdapter } from '../input/mouse.ts';
 import { CameraAdapter } from '../input/camera.ts';
 import { VisionModule } from '../vision/index.ts';
@@ -45,6 +46,8 @@ export class GameScreen {
   private gameState!: GameState;
   private roundState!: RoundState;
   private usedWordIds: Set<string> = new Set();
+  private wordPool: WordEntry[] = [];
+  private fixedDifficulty: DifficultyLevel = 'easy';
   private hasCamera = false;
 
   private animFrameId = 0;
@@ -104,11 +107,14 @@ export class GameScreen {
     this.cameraPreviewCanvasEl = this.el.querySelector('#camera-preview-canvas')!;
   }
 
-  start(hasCamera: boolean): void {
+  start(hasCamera: boolean, category: Category, difficulty: DifficultyLevel): void {
     this.hasCamera = hasCamera;
+    this.wordPool = getWordsByCategory(category);
+    this.fixedDifficulty = difficulty;
     this.el.classList.add('active');
 
     this.gameState = createInitialGameState();
+    this.gameState.currentDifficulty = difficulty;
     this.usedWordIds = new Set();
     this.sessionStartMs = Date.now();
     this.roundTransitionPending = false;
@@ -181,6 +187,7 @@ export class GameScreen {
     const bounds = this.getPlayBounds();
 
     this.roundState = createRound(
+      this.wordPool,
       this.gameState.currentDifficulty,
       this.usedWordIds,
       bounds,
@@ -426,7 +433,8 @@ export class GameScreen {
       this.gameState.history.push(record);
       this.gameState.correctCount++;
       this.gameState.roundsDone++;
-      this.gameState.currentDifficulty = updateDifficulty(this.gameState.history);
+      // keep the user-selected difficulty fixed throughout the session
+      this.gameState.currentDifficulty = this.fixedDifficulty;
 
       setTimeout(() => {
         if (this.gameState.roundsDone >= TOTAL_ROUNDS) {

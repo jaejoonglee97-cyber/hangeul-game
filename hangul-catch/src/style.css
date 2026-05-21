@@ -325,6 +325,183 @@ body {
 }
 
 /* ===========================
+   Stage Select Screen
+   =========================== */
+
+.stage-select-screen {
+  background: linear-gradient(160deg, #fef3c7 0%, #d1fae5 100%);
+  align-items: flex-start;
+  justify-content: center;
+  overflow-y: auto;
+  padding: 1.5rem 1rem 2rem;
+}
+
+.stage-select-wrap {
+  width: 100%;
+  max-width: 640px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.stage-header {
+  text-align: center;
+}
+
+.stage-mascot {
+  font-size: 3.5rem;
+  display: block;
+  animation: float 3s ease-in-out infinite;
+  margin-bottom: 0.25rem;
+}
+
+.stage-title {
+  font-size: 2rem;
+  font-weight: 900;
+  color: #744210;
+  margin-bottom: 0.25rem;
+}
+
+.stage-subtitle {
+  font-size: 1rem;
+  color: #975a16;
+  margin-bottom: 0.5rem;
+}
+
+.stage-mode-badge {
+  display: inline-block;
+  background: #ebf8ff;
+  border: 2px solid #90cdf4;
+  border-radius: 16px;
+  padding: 4px 14px;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: #2c5282;
+}
+
+.section-block {
+  background: rgba(255,255,255,0.75);
+  border-radius: 20px;
+  padding: 1rem 1.25rem 1.25rem;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+}
+
+.section-heading {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #4a5568;
+  margin-bottom: 0.75rem;
+}
+
+/* Category grid */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem;
+}
+
+.category-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 16px;
+  border: 2.5px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  font-family: inherit;
+}
+
+.category-card:hover {
+  transform: translateY(-2px);
+  border-color: #f6c90e;
+}
+
+.category-card.selected {
+  border-color: #ed8936;
+  background: linear-gradient(135deg, #fffbeb, #fef3c7);
+  box-shadow: 0 0 0 3px rgba(237,137,54,0.25);
+}
+
+.category-emoji {
+  font-size: 1.75rem;
+  line-height: 1;
+}
+
+.category-label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: #2d3748;
+}
+
+.category-desc {
+  font-size: 0.65rem;
+  color: #718096;
+  text-align: center;
+  line-height: 1.3;
+}
+
+/* Difficulty buttons */
+.diff-row {
+  display: flex;
+  gap: 0.625rem;
+}
+
+.diff-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.75rem 0.5rem;
+  border-radius: 14px;
+  border: 2.5px solid #e2e8f0;
+  background: white;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s, box-shadow 0.12s;
+  font-family: inherit;
+}
+
+.diff-btn:hover {
+  transform: translateY(-2px);
+  border-color: var(--diff-color);
+}
+
+.diff-btn.selected {
+  border-color: var(--diff-color);
+  background: color-mix(in srgb, var(--diff-color) 10%, white);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--diff-color) 25%, transparent);
+}
+
+.diff-label {
+  font-size: 1rem;
+  font-weight: 800;
+  color: var(--diff-color);
+}
+
+.diff-desc {
+  font-size: 0.7rem;
+  color: #718096;
+  text-align: center;
+}
+
+.btn-start-game {
+  width: 100%;
+  font-size: 1.35rem;
+  padding: 1rem;
+  border-radius: 50px;
+}
+
+@media (max-width: 480px) {
+  .category-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  .category-desc { display: none; }
+}
+
+/* ===========================
    Game Screen
    =========================== */
 

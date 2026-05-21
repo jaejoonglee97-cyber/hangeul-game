@@ -1,4 +1,4 @@
-import { WORD_LIST, WordEntry } from './words.ts';
+import { WordEntry } from './words.ts';
 
 export type DifficultyLevel = 'easy' | 'medium' | 'hard';
 
@@ -75,20 +75,21 @@ function cardCount(difficulty: DifficultyLevel): number {
 }
 
 export function createRound(
+  wordPool: WordEntry[],
   difficulty: DifficultyLevel,
   previouslyUsed: Set<string>,
   bounds: Bounds,
 ): RoundState {
-  // pick unused word
-  const available = WORD_LIST.filter((w) => !previouslyUsed.has(w.id));
-  const pool = available.length > 0 ? available : WORD_LIST;
+  // pick unused word from pool
+  const available = wordPool.filter((w) => !previouslyUsed.has(w.id));
+  const pool = available.length > 0 ? available : wordPool;
   const word = pool[Math.floor(Math.random() * pool.length)];
 
   const hiddenIndex: 0 | 1 = Math.random() < 0.5 ? 0 : 1;
   const correctSyllable = word.syllables[hiddenIndex];
 
-  // build distractor pool from other words' syllables
-  const allSyllables = WORD_LIST.filter((w) => w.id !== word.id).flatMap(
+  // build distractor pool from other words in the same pool
+  const allSyllables = wordPool.filter((w) => w.id !== word.id).flatMap(
     (w) => w.syllables,
   );
   const uniqueDistractors = [...new Set(allSyllables)].filter(
