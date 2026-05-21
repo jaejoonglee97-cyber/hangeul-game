@@ -34,6 +34,9 @@ export class GameScreen {
   private difficultyEl!: HTMLElement;
   private handCursorEl!: HTMLElement;
   private noHandHintEl!: HTMLElement;
+  private cameraPreviewWrapEl!: HTMLElement;
+  private cameraPreviewVideoEl!: HTMLVideoElement;
+  private cameraPreviewCanvasEl!: HTMLCanvasElement;
 
   private vision: VisionModule | null = null;
   private mouseAdapter: MouseTouchAdapter | null = null;
@@ -80,7 +83,13 @@ export class GameScreen {
 
       <div class="play-area" id="play-area">
         <div class="no-hand-hint" id="no-hand-hint">손을 화면 가운데로 보여주세요</div>
-        <div class="hand-cursor" id="hand-cursor"></div>
+        <div class="hand-cursor" id="hand-cursor">
+          <span class="hand-icon">🖐️</span>
+        </div>
+        <div class="camera-preview-wrap" id="camera-preview-wrap" style="display:none">
+          <video class="camera-preview-video" id="camera-preview-video" autoplay muted playsinline></video>
+          <canvas class="camera-preview-canvas" id="camera-preview-canvas"></canvas>
+        </div>
       </div>
     `;
 
@@ -90,6 +99,9 @@ export class GameScreen {
     this.difficultyEl = this.el.querySelector('#difficulty-badge')!;
     this.handCursorEl = this.el.querySelector('#hand-cursor')!;
     this.noHandHintEl = this.el.querySelector('#no-hand-hint')!;
+    this.cameraPreviewWrapEl = this.el.querySelector('#camera-preview-wrap')!;
+    this.cameraPreviewVideoEl = this.el.querySelector('#camera-preview-video')!;
+    this.cameraPreviewCanvasEl = this.el.querySelector('#camera-preview-canvas')!;
   }
 
   start(hasCamera: boolean): void {
@@ -106,6 +118,7 @@ export class GameScreen {
       this.cameraAdapter = new CameraAdapter(this.vision);
       this.cameraAdapter.on(this.handleInput);
       this.handCursorEl.classList.add('visible');
+      this.attachCameraPreview();
     } else {
       this.mouseAdapter = new MouseTouchAdapter(this.playAreaEl);
       this.mouseAdapter.on(this.handleInput);
@@ -120,7 +133,37 @@ export class GameScreen {
     this.stopLoop();
     this.destroyAdapters();
     this.clearCards();
+    this.cameraPreviewVideoEl.srcObject = null;
+    this.cameraPreviewWrapEl.style.display = 'none';
+    if (this.vision) this.vision.offHandUpdate(this.drawPreviewOverlay);
   }
+
+  private attachCameraPreview(): void {
+    if (!this.vision) return;
+    const videoSrc = this.vision.getVideoElement();
+    if (!videoSrc?.srcObject) return;
+
+    this.cameraPreviewVideoEl.srcObject = videoSrc.srcObject as MediaStream;
+    this.cameraPreviewWrapEl.style.display = 'block';
+
+    // mirror the canvas to match mirrored video
+    this.vision.onHandUpdate(this.drawPreviewOverlay);
+  }
+
+  private drawPreviewOverlay = (): void => {
+    const video = this.cameraPreviewVideoEl;
+    const canvas = this.cameraPreviewCanvasEl;
+    if (!video || video.readyState < 2) return;
+
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+    if (canvas.width !== w) canvas.width = w;
+    if (canvas.height !== h) canvas.height = h;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, w, h);
+  };
 
   private destroyAdapters(): void {
     if (this.mouseAdapter) {
@@ -325,11 +368,15 @@ export class GameScreen {
     } else if (event.type === 'catch') {
       if (this.hasCamera) {
         this.handCursorEl.classList.add('closed');
+        const icon = this.handCursorEl.querySelector('.hand-icon');
+        if (icon) icon.textContent = '✊';
       }
       this.processCatch(event.x, event.y);
     } else if (event.type === 'release') {
       if (this.hasCamera) {
         this.handCursorEl.classList.remove('closed');
+        const icon = this.handCursorEl.querySelector('.hand-icon');
+        if (icon) icon.textContent = '🖐️';
       }
     }
   };
