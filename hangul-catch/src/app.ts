@@ -66,6 +66,11 @@ export class AppController {
       this.gameScreen.start(this.hasCamera, stage, category, difficulty);
     };
 
+    // Game → Stage Select (back button)
+    this.gameScreen.onBack = () => {
+      this.stageSelectScreen.show(this.hasCamera);
+    };
+
     // Game → Completion
     this.gameScreen.onComplete = (result) => {
       this.progress.saveSession({

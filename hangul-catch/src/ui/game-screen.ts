@@ -35,6 +35,7 @@ const CARD_COLORS = ['card-color-0', 'card-color-1', 'card-color-2', 'card-color
 export class GameScreen {
   readonly el: HTMLElement;
   onComplete: ((result: GameResult) => void) | null = null;
+  onBack: (() => void) | null = null;
 
   private playAreaEl!: HTMLElement;
   private feedbackEl!: HTMLElement;
@@ -48,6 +49,7 @@ export class GameScreen {
   private wordBoardEl!: HTMLElement;
   private sentenceBoardEl!: HTMLElement;
   private wordMeaningEl!: HTMLElement;
+  private pauseOverlayEl!: HTMLElement;
 
   private vision: VisionModule | null = null;
   private mouseAdapter: MouseTouchAdapter | null = null;
@@ -90,6 +92,7 @@ export class GameScreen {
   private buildDOM(): void {
     this.el.innerHTML = `
       <div class="game-header">
+        <button class="btn-back-game" id="back-btn" title="나가기">◀</button>
         <div class="progress-indicator" id="progress-indicator">1 / ${TOTAL_ROUNDS}</div>
         <div class="game-title" id="game-title">한글 잡기</div>
         <div class="difficulty-badge" id="difficulty-badge">쉬움</div>
@@ -115,6 +118,18 @@ export class GameScreen {
           <canvas class="camera-preview-canvas" id="camera-preview-canvas"></canvas>
         </div>
       </div>
+
+      <div class="pause-overlay" id="pause-overlay" style="display:none">
+        <div class="pause-card">
+          <div class="pause-emoji">⏸</div>
+          <div class="pause-title">게임을 나갈까요?</div>
+          <p class="pause-desc">지금 나가면 진행 기록이 사라져요.</p>
+          <div class="pause-actions">
+            <button class="btn-resume" id="btn-resume">계속하기 ▶</button>
+            <button class="btn-quit-game" id="btn-quit">나가기</button>
+          </div>
+        </div>
+      </div>
     `;
 
     this.playAreaEl        = this.el.querySelector('#play-area')!;
@@ -129,6 +144,26 @@ export class GameScreen {
     this.wordBoardEl       = this.el.querySelector('#word-board')!;
     this.sentenceBoardEl   = this.el.querySelector('#sentence-board')!;
     this.wordMeaningEl     = this.el.querySelector('#word-meaning')!;
+    this.pauseOverlayEl    = this.el.querySelector('#pause-overlay')!;
+
+    this.el.querySelector('#back-btn')!.addEventListener('click', () => this.showPause());
+    this.el.querySelector('#btn-resume')!.addEventListener('click', () => this.hidePause());
+    this.el.querySelector('#btn-quit')!.addEventListener('click', () => this.exitGame());
+  }
+
+  private showPause(): void {
+    this.pauseOverlayEl.style.display = 'flex';
+    this.stopLoop();
+  }
+
+  private hidePause(): void {
+    this.pauseOverlayEl.style.display = 'none';
+    this.startLoop();
+  }
+
+  private exitGame(): void {
+    this.hide();
+    this.onBack?.();
   }
 
   start(hasCamera: boolean, stage: GameStage, category: Category, difficulty: DifficultyLevel): void {
