@@ -18,6 +18,7 @@ import { MouseTouchAdapter } from '../input/mouse.ts';
 import { CameraAdapter } from '../input/camera.ts';
 import { VisionModule } from '../vision/index.ts';
 import type { InputEvent } from '../input/events.ts';
+import { SoundManager } from '../audio/sounds.ts';
 
 const TOTAL_ROUNDS = 20;
 const TOTAL_SENTENCES = 10;
@@ -65,6 +66,9 @@ export class GameScreen {
   private usedSentenceIds: Set<string> = new Set();
   private currentSentence: SentenceEntry | null = null;
   private currentBlankIndex = 0;
+
+  private sounds = new SoundManager();
+  private wrongAttemptsThisRound = 0;
 
   private animFrameId = 0;
   private lastTimestamp = 0;
@@ -219,6 +223,7 @@ export class GameScreen {
   }
 
   private startWordRound(): void {
+    this.wrongAttemptsThisRound = 0;
     const bounds = this.getPlayBounds();
     this.roundState = createRound(this.wordPool, this.gameState.currentDifficulty, this.usedWordIds, bounds);
     this.usedWordIds.add((this.roundState as WordRoundState).word.id);
@@ -229,6 +234,7 @@ export class GameScreen {
   }
 
   private startSentenceRound(): void {
+    this.roundTransitionPending = false;
     const bounds = this.getPlayBounds();
 
     // pick new sentence if needed
@@ -280,7 +286,19 @@ export class GameScreen {
       (hiddenIndex === 0 ? slot0 : slot1).classList.add('filled');
     }
 
-    this.wordMeaningEl.textContent = word.meaning;
+    // hint hidden until 3 wrong attempts
+    if (!filled) {
+      this.wordMeaningEl.textContent = '';
+      this.wordMeaningEl.classList.remove('visible');
+    }
+  }
+
+  private revealHint(): void {
+    const state = this.roundState as WordRoundState;
+    if (this.wordMeaningEl.classList.contains('visible')) return;
+    this.wordMeaningEl.textContent = `힌트: ${state.word.emoji}  ${state.word.word}`;
+    this.wordMeaningEl.classList.add('visible');
+    this.sounds.playHintReveal();
   }
 
   private renderSentenceBoard(): void {
@@ -457,26 +475,33 @@ export class GameScreen {
 
     if (!card.isCorrect) {
       this.gameState.totalAttempts++;
+      this.wrongAttemptsThisRound++;
+      this.sounds.playWrong();
       cardEl?.classList.add('bouncing');
       setTimeout(() => cardEl?.classList.remove('bouncing'), 500);
       this.showFeedback('다시 잘 읽어봐요! 🤔');
+      if (this.gameStage === 'word' && this.wrongAttemptsThisRound >= 3) {
+        this.revealHint();
+      }
       return;
     }
 
     // correct catch
-    this.roundTransitionPending = true;
     this.gameState.totalAttempts++;
     if (cardEl) cardEl.classList.add('caught');
 
     if (this.gameStage === 'sentence') {
+      // sentence mode sets roundTransitionPending only on last blank
       this.processSentenceCatch();
     } else {
+      this.roundTransitionPending = true;
       this.processWordCatch();
     }
   }
 
   private processWordCatch(): void {
     const state = this.roundState as WordRoundState;
+    this.sounds.playCorrect();
     this.updateWordBoard(true);
 
     const record: AttemptRecord = {
@@ -513,7 +538,9 @@ export class GameScreen {
     const isLastBlank = this.currentBlankIndex >= sentence.answers.length;
 
     if (isLastBlank) {
-      // sentence complete
+      this.sounds.playSentenceComplete();
+      // freeze game until next sentence starts (show completion)
+      this.roundTransitionPending = true;
       this.gameState.correctCount++;
       this.gameState.roundsDone++;
       this.gameState.currentDifficulty = this.fixedDifficulty;
@@ -526,12 +553,14 @@ export class GameScreen {
         } else {
           this.startRound();
         }
-      }, 900);
+      }, 800);
     } else {
-      // advance to next blank of the same sentence
+      this.sounds.playCorrect();
+      // blank-to-blank: briefly block input then respawn cards; keep cards moving
+      this.roundTransitionPending = true;
       setTimeout(() => {
         this.startSentenceRound();
-      }, 400);
+      }, 160);
     }
   }
 
@@ -549,6 +578,7 @@ export class GameScreen {
 
   private endSession(): void {
     this.stopLoop();
+    this.sounds.playGameComplete();
     const durationMs = Date.now() - this.sessionStartMs;
     const total = this.gameStage === 'sentence' ? TOTAL_SENTENCES : TOTAL_ROUNDS;
     this.onComplete?.({ correctCount: this.gameState.correctCount, totalRounds: total, durationMs });
