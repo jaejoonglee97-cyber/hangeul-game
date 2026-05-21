@@ -1,7 +1,8 @@
 import { type Category, type CategoryInfo, CATEGORY_INFO } from '../game/words.ts';
-import type { DifficultyLevel } from '../game/index.ts';
+import type { DifficultyLevel, GameStage } from '../game/index.ts';
 
-const CATEGORIES: Category[] = ['all', 'nature', 'animals', 'food', 'daily'];
+const WORD_CATEGORIES: Category[] = ['all', 'nature', 'animals', 'food', 'daily', 'family', 'colors', 'places'];
+const SENTENCE_CATEGORIES: Category[] = ['all', 'nature', 'animals', 'food', 'daily', 'family', 'places'];
 
 const DIFFICULTY_INFO: Record<DifficultyLevel, { label: string; desc: string; color: string }> = {
   easy:   { label: '쉬움',   desc: '느린 카드 · 큰 글씨',  color: '#48bb78' },
@@ -9,13 +10,20 @@ const DIFFICULTY_INFO: Record<DifficultyLevel, { label: string; desc: string; co
   hard:   { label: '어려움', desc: '빠른 카드 · 카드 4장',  color: '#e53e3e' },
 };
 
+const STAGE_INFO: Record<GameStage, { label: string; desc: string; icon: string }> = {
+  word:     { label: '1단계 단어 잡기',  desc: '날아다니는 카드에서 빠진 글자를 잡아요!', icon: '🔤' },
+  sentence: { label: '2단계 문장 완성',  desc: '문장의 빈칸을 순서대로 채워요!',          icon: '📝' },
+};
+
 export class StageSelectScreen {
   readonly el: HTMLElement;
-  onStart: ((category: Category, difficulty: DifficultyLevel) => void) | null = null;
+  onStart: ((stage: GameStage, category: Category, difficulty: DifficultyLevel) => void) | null = null;
 
+  private selectedStage: GameStage = 'word';
   private selectedCategory: Category = 'all';
   private selectedDifficulty: DifficultyLevel = 'easy';
   private modeBadgeEl!: HTMLElement;
+  private categoryGridEl!: HTMLElement;
 
   constructor() {
     this.el = document.createElement('div');
@@ -24,14 +32,13 @@ export class StageSelectScreen {
   }
 
   private buildDOM(): void {
-    const categoryCards = CATEGORIES.map((cat) => {
-      const info: CategoryInfo = CATEGORY_INFO[cat];
-      const active = cat === this.selectedCategory ? ' selected' : '';
+    const stageTabs = (Object.keys(STAGE_INFO) as GameStage[]).map((s) => {
+      const info = STAGE_INFO[s];
+      const active = s === this.selectedStage ? ' active' : '';
       return `
-        <button class="category-card${active}" data-category="${cat}">
-          <span class="category-emoji">${info.emoji}</span>
-          <span class="category-label">${info.label}</span>
-          <span class="category-desc">${info.description}</span>
+        <button class="stage-tab${active}" data-stage="${s}">
+          <span class="stage-tab-icon">${info.icon}</span>
+          <span class="stage-tab-label">${info.label}</span>
         </button>`;
     }).join('');
 
@@ -50,15 +57,21 @@ export class StageSelectScreen {
         <div class="stage-header">
           <div class="stage-mascot">🌸</div>
           <h1 class="stage-title">한글 잡기</h1>
-          <p class="stage-subtitle">주제와 난이도를 골라보세요!</p>
+          <p class="stage-subtitle">단계와 주제를 골라보세요!</p>
           <div class="stage-mode-badge" id="mode-badge">🖱️ 마우스 / 터치 모드</div>
         </div>
 
         <section class="section-block">
-          <h2 class="section-heading">📚 주제 선택</h2>
-          <div class="category-grid" id="category-grid">
-            ${categoryCards}
+          <h2 class="section-heading">🎮 단계 선택</h2>
+          <div class="stage-tabs" id="stage-tabs">
+            ${stageTabs}
           </div>
+          <p class="stage-desc" id="stage-desc">${STAGE_INFO[this.selectedStage].desc}</p>
+        </section>
+
+        <section class="section-block">
+          <h2 class="section-heading">📚 주제 선택</h2>
+          <div class="category-grid" id="category-grid"></div>
         </section>
 
         <section class="section-block">
@@ -74,17 +87,27 @@ export class StageSelectScreen {
       </div>
     `;
 
-    this.modeBadgeEl = this.el.querySelector('#mode-badge')!;
+    this.modeBadgeEl   = this.el.querySelector('#mode-badge')!;
+    this.categoryGridEl = this.el.querySelector('#category-grid')!;
 
-    this.el.querySelector('#category-grid')!.addEventListener('click', (e) => {
-      const btn = (e.target as HTMLElement).closest('[data-category]') as HTMLElement | null;
+    this.renderCategoryGrid();
+
+    // Stage tab clicks
+    this.el.querySelector('#stage-tabs')!.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-stage]') as HTMLElement | null;
       if (!btn) return;
-      this.selectedCategory = btn.dataset['category'] as Category;
-      this.el.querySelectorAll('.category-card').forEach((el) =>
-        el.classList.toggle('selected', (el as HTMLElement).dataset['category'] === this.selectedCategory),
+      this.selectedStage = btn.dataset['stage'] as GameStage;
+      this.el.querySelectorAll('.stage-tab').forEach((el) =>
+        el.classList.toggle('active', (el as HTMLElement).dataset['stage'] === this.selectedStage),
       );
+      const descEl = this.el.querySelector('#stage-desc')!;
+      descEl.textContent = STAGE_INFO[this.selectedStage].desc;
+      // reset category selection to 'all' and re-render grid
+      this.selectedCategory = 'all';
+      this.renderCategoryGrid();
     });
 
+    // Difficulty buttons
     this.el.querySelector('#diff-row')!.addEventListener('click', (e) => {
       const btn = (e.target as HTMLElement).closest('[data-diff]') as HTMLElement | null;
       if (!btn) return;
@@ -95,7 +118,30 @@ export class StageSelectScreen {
     });
 
     this.el.querySelector('#start-game-btn')!.addEventListener('click', () => {
-      this.onStart?.(this.selectedCategory, this.selectedDifficulty);
+      this.onStart?.(this.selectedStage, this.selectedCategory, this.selectedDifficulty);
+    });
+  }
+
+  private renderCategoryGrid(): void {
+    const categories = this.selectedStage === 'sentence' ? SENTENCE_CATEGORIES : WORD_CATEGORIES;
+    this.categoryGridEl.innerHTML = categories.map((cat) => {
+      const info: CategoryInfo = CATEGORY_INFO[cat];
+      const active = cat === this.selectedCategory ? ' selected' : '';
+      return `
+        <button class="category-card${active}" data-category="${cat}">
+          <span class="category-emoji">${info.emoji}</span>
+          <span class="category-label">${info.label}</span>
+          <span class="category-desc">${info.description}</span>
+        </button>`;
+    }).join('');
+
+    this.categoryGridEl.addEventListener('click', (e) => {
+      const btn = (e.target as HTMLElement).closest('[data-category]') as HTMLElement | null;
+      if (!btn) return;
+      this.selectedCategory = btn.dataset['category'] as Category;
+      this.categoryGridEl.querySelectorAll('.category-card').forEach((el) =>
+        el.classList.toggle('selected', (el as HTMLElement).dataset['category'] === this.selectedCategory),
+      );
     });
   }
 

@@ -61,9 +61,9 @@ export class AppController {
     };
 
     // Stage Select → Game
-    this.stageSelectScreen.onStart = (category, difficulty) => {
+    this.stageSelectScreen.onStart = (stage, category, difficulty) => {
       this.stageSelectScreen.hide();
-      this.gameScreen.start(this.hasCamera, category, difficulty);
+      this.gameScreen.start(this.hasCamera, stage, category, difficulty);
     };
 
     // Game → Completion
