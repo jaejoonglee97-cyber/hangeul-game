@@ -2,11 +2,9 @@ import { VisionModule } from './vision/index.ts';
 import { ProgressStore } from './progress/index.ts';
 import { GuardianScreen } from './ui/guardian.ts';
 import { CameraSetupScreen } from './ui/camera-setup.ts';
-import { ChildStartScreen } from './ui/child-start.ts';
+import { StageSelectScreen } from './ui/stage-select.ts';
 import { GameScreen } from './ui/game-screen.ts';
 import { CompletionScreen } from './ui/completion.ts';
-
-type ScreenName = 'guardian' | 'camera-setup' | 'child-start' | 'game' | 'completion';
 
 export class AppController {
   private root: HTMLElement;
@@ -16,7 +14,7 @@ export class AppController {
 
   private guardianScreen: GuardianScreen;
   private cameraSetupScreen: CameraSetupScreen;
-  private childStartScreen: ChildStartScreen;
+  private stageSelectScreen: StageSelectScreen;
   private gameScreen: GameScreen;
   private completionScreen: CompletionScreen;
 
@@ -29,15 +27,14 @@ export class AppController {
 
     this.guardianScreen = new GuardianScreen();
     this.cameraSetupScreen = new CameraSetupScreen(this.vision);
-    this.childStartScreen = new ChildStartScreen();
+    this.stageSelectScreen = new StageSelectScreen();
     this.gameScreen = new GameScreen(this.vision);
     this.completionScreen = new CompletionScreen();
 
-    // Mount all screens
     [
       this.guardianScreen.el,
       this.cameraSetupScreen.el,
-      this.childStartScreen.el,
+      this.stageSelectScreen.el,
       this.gameScreen.el,
       this.completionScreen.el,
     ].forEach((el) => this.root.appendChild(el));
@@ -46,40 +43,27 @@ export class AppController {
   }
 
   run(): void {
-    this.showScreen('guardian');
-  }
-
-  private showScreen(name: ScreenName): void {
-    const map: Record<ScreenName, HTMLElement> = {
-      guardian: this.guardianScreen.el,
-      'camera-setup': this.cameraSetupScreen.el,
-      'child-start': this.childStartScreen.el,
-      game: this.gameScreen.el,
-      completion: this.completionScreen.el,
-    };
-
-    Object.values(map).forEach((el) => el.classList.remove('active'));
-    map[name].classList.add('active');
+    this.guardianScreen.show();
   }
 
   private wireCallbacks(): void {
     // Guardian → Camera Setup
     this.guardianScreen.onConfirm = () => {
-      this.showScreen('camera-setup');
+      this.guardianScreen.hide();
       void this.cameraSetupScreen.show();
     };
 
-    // Camera Setup → Child Start
+    // Camera Setup → Stage Select
     this.cameraSetupScreen.onReady = (hasCamera: boolean) => {
       this.hasCamera = hasCamera;
       this.cameraSetupScreen.hide();
-      this.childStartScreen.show(hasCamera);
+      this.stageSelectScreen.show(hasCamera);
     };
 
-    // Child Start → Game
-    this.childStartScreen.onStart = () => {
-      this.childStartScreen.hide();
-      this.gameScreen.start(this.hasCamera);
+    // Stage Select → Game
+    this.stageSelectScreen.onStart = (stage, category, difficulty) => {
+      this.stageSelectScreen.hide();
+      this.gameScreen.start(this.hasCamera, stage, category, difficulty);
     };
 
     // Game → Completion
@@ -90,18 +74,14 @@ export class AppController {
         correctCount: result.correctCount,
         durationMs: result.durationMs,
       });
-
       this.gameScreen.hide();
       this.completionScreen.show(result);
     };
 
-    // Completion → restart
+    // Completion → Stage Select (replay)
     this.completionScreen.onReplay = () => {
       this.completionScreen.hide();
-      this.hasCamera = false;
-
-      // Restart from guardian notice
-      this.showScreen('guardian');
+      this.stageSelectScreen.show(this.hasCamera);
     };
   }
 }
