@@ -63,6 +63,10 @@ export class VisionModule {
     }
   }
 
+  getVideoElement(): HTMLVideoElement | null {
+    return this.videoEl;
+  }
+
   stop(): void {
     if (this.animFrameId) {
       cancelAnimationFrame(this.animFrameId);
