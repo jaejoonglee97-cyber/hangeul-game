@@ -229,6 +229,7 @@ export class GameScreen {
   }
 
   private startSentenceRound(): void {
+    this.roundTransitionPending = false;
     const bounds = this.getPlayBounds();
 
     // pick new sentence if needed
@@ -464,13 +465,14 @@ export class GameScreen {
     }
 
     // correct catch
-    this.roundTransitionPending = true;
     this.gameState.totalAttempts++;
     if (cardEl) cardEl.classList.add('caught');
 
     if (this.gameStage === 'sentence') {
+      // sentence mode sets roundTransitionPending only on last blank
       this.processSentenceCatch();
     } else {
+      this.roundTransitionPending = true;
       this.processWordCatch();
     }
   }
@@ -513,7 +515,8 @@ export class GameScreen {
     const isLastBlank = this.currentBlankIndex >= sentence.answers.length;
 
     if (isLastBlank) {
-      // sentence complete
+      // freeze game until next sentence starts (show completion)
+      this.roundTransitionPending = true;
       this.gameState.correctCount++;
       this.gameState.roundsDone++;
       this.gameState.currentDifficulty = this.fixedDifficulty;
@@ -526,12 +529,13 @@ export class GameScreen {
         } else {
           this.startRound();
         }
-      }, 900);
+      }, 800);
     } else {
-      // advance to next blank of the same sentence
+      // blank-to-blank: briefly block input then respawn cards; keep cards moving
+      this.roundTransitionPending = true;
       setTimeout(() => {
-        this.startSentenceRound();
-      }, 400);
+        this.startSentenceRound(); // resets roundTransitionPending = false inside startRound
+      }, 160);
     }
   }
 
